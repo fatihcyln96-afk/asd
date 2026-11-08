@@ -1,0 +1,46 @@
+name: Rust CI
+
+# Biçim, lint, test ve güvenlik denetimi. Yalnızca Rust dosyaları
+# değiştiğinde çalışır.
+
+on:
+  push:
+    branches: [main]
+    paths: ["**.rs", "**/Cargo.toml", "**/Cargo.lock", ".github/workflows/rust-ci.yml"]
+  pull_request:
+    paths: ["**.rs", "**/Cargo.toml", "**/Cargo.lock", ".github/workflows/rust-ci.yml"]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Biçim kontrolü (rustfmt)
+        run: cargo fmt --all -- --check
+      - name: Lint (clippy)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Testler
+        run: cargo test --all-features
+
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: Bağımlılık güvenlik denetimi
+        run: cargo audit

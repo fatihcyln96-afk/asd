@@ -1,0 +1,64 @@
+name: Claude Kod İncelemesi
+
+# Her pull request açıldığında veya güncellendiğinde Claude kodu inceler
+# ve bulgularını satır içi yorumlar olarak PR'a yazar.
+#
+# Gereksinim: Depo ayarlarında ANTHROPIC_API_KEY adlı bir secret tanımlı olmalı
+# (Settings → Secrets and variables → Actions → New repository secret).
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Taslak PR'ları atla
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Depoyu çek
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Claude ile incele
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Bu pull request'teki değişiklikleri incele. Tüm yorumlarını Türkçe yaz.
+
+            Öncelik sırası:
+            1. **Doğruluk:** Mantık hataları, kenar durumları, panic'e yol açabilecek
+               `unwrap()` / `expect()` / indeksleme, yanlış hata yönetimi.
+            2. **Güvenlik:** Girdi doğrulama, gizli bilgilerin koda yazılması,
+               gerekçesiz `unsafe` blokları (her `unsafe` için `// SAFETY:` açıklaması olmalı).
+            3. **Eşzamanlılık:** Kilitlenme (deadlock) riski, async kodda bloklayan çağrılar,
+               `.await` boyunca tutulan kilitler.
+            4. **Performans:** Gereksiz `clone()`, döngü içinde ayırma (allocation),
+               verimsiz veri yapıları.
+            5. **Testler:** Yeni davranış için test var mı, kritik kenar durumları kapsanıyor mu.
+            6. **Okunabilirlik:** Yalnızca anlamı netleştiren öneriler; zevk meselesi
+               biçim tartışmalarına girme (biçimi rustfmt ve clippy denetliyor).
+
+            Kurallar:
+            - Belirli bir satırdaki sorunu satır içi yorumla bildir; mümkünse düzeltme önerisi ekle.
+            - Her bulguyu önem derecesiyle etiketle: 🔴 Kritik, 🟡 Önemli, 🔵 Öneri.
+            - Emin olmadığın bulguları kesinmiş gibi yazma; "olası" olarak belirt.
+            - Sonunda kısa bir özet yorum bırak: genel değerlendirme ve birleştirmeye
+              engel bir sorun olup olmadığı.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
