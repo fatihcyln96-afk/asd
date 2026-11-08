@@ -1,0 +1,21 @@
+{
+  "grup": "KIRISLER",
+  "ad_desenleri": ["IPE*", "HE*A"],
+  "profil_tipleri": ["I"],
+  "geometrik": {
+    "t3": { "max": 40 },
+    "i33": { "min": 2000 }
+  },
+  "tasarim": {
+    "oran_max": 0.95
+  },
+  "deplasman": {
+    "max_mm": 20,
+    "yon": "U3",
+    "kombinasyonlar": ["G+Q"],
+    "grup": "KIRIS_ORTA_NOKTALAR"
+  },
+  "mod": "en_hafif",
+  "uygula": false,
+  "rapor": "profil_raporu.csv"
+}

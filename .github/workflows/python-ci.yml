@@ -1,0 +1,28 @@
+name: Python CI
+
+# SAP2000 profil seçici araçlarının birim testleri. SAP2000 gerektirmez
+# (testler sahte adaptör kullanır), bu yüzden Linux'ta çalışır.
+
+on:
+  push:
+    branches: [main]
+    paths: ["sap2000/**", ".github/workflows/python-ci.yml"]
+  pull_request:
+    paths: ["sap2000/**", ".github/workflows/python-ci.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Testler
+        working-directory: sap2000
+        run: python -m unittest -v
